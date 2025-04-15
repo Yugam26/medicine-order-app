@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Medicine Order Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Apply Inter font globally */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Basic styling for print */
+        @media print {
+            body {
+                font-family: sans-serif; /* Use a common print font */
+            }
+            .no-print {
+                display: none !important; /* Hide elements not needed for print */
+            }
+            #finalListPage {
+                display: block !important; /* Ensure final list is visible */
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+            }
+            #medicineEntryPage, #quantityEntryPage, #header, #footer {
+                display: none !important; /* Hide other sections */
+            }
+             #printHeader {
+                display: block !important; /* Show print header */
+            }
+            button {
+                display: none !important; /* Hide buttons */
+            }
+            input[type="text"], input[type="number"] {
+                 border: none; /* Remove borders for cleaner print */
+                 padding: 2px;
+            }
+             #userNameInputPrint {
+                 border-bottom: 1px solid #ccc; /* Add underline for name */
+                 font-weight: bold;
+                 font-size: 1.2em;
+             }
+             table { width: 100%; border-collapse: collapse; }
+             th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+             th { background-color: #f2f2f2; }
+        }
+         /* Style for the hidden print header */
+        #printHeader {
+            display: none; /* Hidden by default */
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="appContainer" class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl">
+
+        <h1 id="header" class="text-2xl font-bold text-center text-blue-600 mb-6">Monthly Medicine Order Helper</h1>
+
+        <div id="medicineEntryPage">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 1: Enter Medicine Names</h2>
+            <div class="flex gap-4 mb-4">
+                <input type="text" id="medicineNameInput" placeholder="Enter medicine name" class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="addMedicine()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-150 ease-in-out">Add</button>
+            </div>
+            <ul id="medicineList" class="list-disc list-inside mb-6 space-y-2 text-gray-800">
+                </ul>
+            <div class="text-center">
+                 <button id="nextButton" onclick="goToQuantityPage()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Next: Enter Quantities
+                </button>
+            </div>
+        </div>
+
+        <div id="quantityEntryPage" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 2: Enter Quantities</h2>
+            <div id="quantityList" class="space-y-4 mb-6">
+                </div>
+            <div class="flex justify-between items-center">
+                 <button onclick="goToMedicinePage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">
+                    &larr; Back
+                </button>
+                <button onclick="generateFinalList()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out">
+                    Generate List
+                </button>
+            </div>
+        </div>
+
+        <div id="finalListPage" style="display: none;">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700 no-print">Step 3: Final Medicine List</h2>
+
+             <div id="printHeader">
+                Monthly Medicine Order
+            </div>
+
+            <div class="mb-4 no-print">
+                <label for="userNameInput" class="block text-sm font-medium text-gray-700 mb-1">Enter Name for the List:</label>
+                <input type="text" id="userNameInput" placeholder="e.g., Family Name or Your Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+             <div class="mb-6 text-center">
+                 <span id="userNameDisplay" class="text-lg font-bold"></span>
+                 <input type="text" id="userNameInputPrint" class="hidden print:block w-full text-center border-b-2 border-gray-400 focus:outline-none text-xl font-bold mb-4" placeholder="[Enter Name Here]">
+             </div>
+
+
+            <h3 class="text-lg font-semibold mb-2 text-gray-800">Medicines & Quantities:</h3>
+            <table class="w-full border-collapse border border-gray-300 mb-6">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Medicine Name</th>
+                        <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Quantity</th>
+                    </tr>
+                </thead>
+                <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200">
+                    </tbody>
+            </table>
+
+            <p class="text-sm text-gray-600 mb-4 no-print">
+                Review the list above. You can go back to make changes or print this list.
+            </p>
+            <p class="text-sm text-red-600 mb-6 no-print">
+                <strong>To save as PDF:</strong> Click 'Print List' and choose 'Save as PDF' or 'Microsoft Print to PDF' in your browser's print dialog destination/printer options.
+            </p>
+
+            <div class="flex justify-between items-center no-print">
+                 <button onclick="goToQuantityPage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">
+                    &larr; Back
+                </button>
+                <button onclick="printList()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out">
+                    Print List
+                </button>
+            </div>
+        </div>
+
+         <footer id="footer" class="text-center text-xs text-gray-400 mt-8 no-print">
+            Medicine Order Helper App
+        </footer>
+    </div>
+
+    <script>
+        // State to hold medicine data
+        let medicines = []; // Array of objects: { name: 'Medicine A', quantity: 0 }
+
+        // DOM Elements
+        const medicineEntryPage = document.getElementById('medicineEntryPage');
+        const quantityEntryPage = document.getElementById('quantityEntryPage');
+        const finalListPage = document.getElementById('finalListPage');
+        const medicineNameInput = document.getElementById('medicineNameInput');
+        const medicineList = document.getElementById('medicineList');
+        const quantityList = document.getElementById('quantityList');
+        const finalMedicineTableBody = document.getElementById('finalMedicineTableBody');
+        const nextButton = document.getElementById('nextButton');
+        const userNameInput = document.getElementById('userNameInput');
+        const userNameDisplay = document.getElementById('userNameDisplay');
+        const userNameInputPrint = document.getElementById('userNameInputPrint'); // Input for print view
+
+
+        // --- Step 1: Medicine Entry ---
+
+        function addMedicine() {
+            const name = medicineNameInput.value.trim();
+            if (name && !medicines.some(med => med.name.toLowerCase() === name.toLowerCase())) {
+                medicines.push({ name: name, quantity: '' }); // Initialize quantity as empty string
+                renderMedicineList();
+                medicineNameInput.value = ''; // Clear input
+                medicineNameInput.focus();
+                updateNextButtonState();
+            } else if (!name) {
+                alert('Please enter a medicine name.');
+            } else {
+                 alert(`'${name}' is already in the list.`);
+            }
+        }
+
+        // Allow adding medicine by pressing Enter key
+        medicineNameInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault(); // Prevent default form submission
+                addMedicine();
+            }
+        });
+
+
+        function removeMedicine(index) {
+            medicines.splice(index, 1); // Remove medicine at the given index
+            renderMedicineList();
+            updateNextButtonState();
+        }
+
+        function renderMedicineList() {
+            medicineList.innerHTML = ''; // Clear current list
+            if (medicines.length === 0) {
+                medicineList.innerHTML = '<li class="text-gray-500 italic">No medicines added yet.</li>';
+            } else {
+                medicines.forEach((med, index) => {
+                    const li = document.createElement('li');
+                    li.className = 'flex justify-between items-center group';
+                    li.innerHTML = `
+                        <span class="break-all">${med.name}</span>
+                        <button onclick="removeMedicine(${index})" class="no-print text-red-500 hover:text-red-700 ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">[Remove]</button>
+                    `;
+                    medicineList.appendChild(li);
+                });
+            }
+        }
+
+        function updateNextButtonState() {
+            // Enable the 'Next' button only if there's at least one medicine
+            nextButton.disabled = medicines.length === 0;
+        }
+
+
+        // --- Step 2: Quantity Entry ---
+
+        function renderQuantityInputs() {
+            quantityList.innerHTML = ''; // Clear current list
+            medicines.forEach((med, index) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center gap-4';
+                div.innerHTML = `
+                    <label for="qty_${index}" class="w-1/2 text-gray-700 break-words">${med.name}:</label>
+                    <input
+                        type="number"
+                        id="qty_${index}"
+                        min="0"
+                        value="${med.quantity || ''}"
+                        oninput="updateQuantity(${index}, this.value)"
+                        placeholder="Quantity"
+                        class="w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                `;
+                quantityList.appendChild(div);
+            });
+        }
+
+        function updateQuantity(index, value) {
+            // Update the quantity in the main medicines array
+             // Allow empty string or positive numbers
+            medicines[index].quantity = value === '' ? '' : Math.max(0, parseInt(value) || 0);
+        }
+
+
+        // --- Step 3: Final List ---
+
+        function renderFinalList() {
+            finalMedicineTableBody.innerHTML = ''; // Clear previous list
+            const name = userNameInput.value.trim();
+            userNameDisplay.textContent = name ? `Order For: ${name}` : '';
+            // Update the hidden input for print view
+            userNameInputPrint.value = name;
+            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
+
+
+             if (medicines.length === 0) {
+                 finalMedicineTableBody.innerHTML = '<tr><td colspan="2" class="text-center text-gray-500 py-4">No medicines in the list.</td></tr>';
+             } else {
+                 medicines.forEach(med => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="border border-gray-300 px-4 py-2 break-words">${med.name}</td>
+                        <td class="border border-gray-300 px-4 py-2">${med.quantity === '' ? 'Not specified' : med.quantity}</td>
+                    `;
+                    finalMedicineTableBody.appendChild(tr);
+                 });
+             }
+        }
+
+        // Sync user name input between display and print input
+        userNameInput.addEventListener('input', () => {
+            const name = userNameInput.value.trim();
+            userNameDisplay.textContent = name ? `Order For: ${name}` : '';
+            userNameInputPrint.value = name; // Sync to print input
+            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
+        });
+
+
+        // --- Navigation ---
+
+        function showPage(pageId) {
+            medicineEntryPage.style.display = 'none';
+            quantityEntryPage.style.display = 'none';
+            finalListPage.style.display = 'none';
+
+            document.getElementById(pageId).style.display = 'block';
+        }
+
+        function goToMedicinePage() {
+            showPage('medicineEntryPage');
+        }
+
+        function goToQuantityPage() {
+            // Ensure quantities are updated before moving
+            // (This happens via oninput, but good practice)
+            if (medicines.length > 0) {
+                 renderQuantityInputs(); // Re-render to ensure values are current
+                 showPage('quantityEntryPage');
+            } else {
+                alert("Please add at least one medicine first.");
+            }
+        }
+
+        function generateFinalList() {
+             // Optional: Check if all quantities are entered
+             const allQuantitiesEntered = medicines.every(med => med.quantity !== '');
+             if (!allQuantitiesEntered) {
+                 if (!confirm("Some quantities are not specified. Do you want to proceed anyway?")) {
+                     return; // Stop if user cancels
+                 }
+             }
+            renderFinalList();
+            showPage('finalListPage');
+        }
+
+        function printList() {
+             // Update the display name one last time before printing
+            const name = userNameInput.value.trim();
+            userNameDisplay.textContent = name ? `Order For: ${name}` : '';
+            userNameInputPrint.value = name; // Ensure print input is synced
+            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
+
+            window.print(); // Trigger browser's print dialog
+        }
+
+
+        // --- Initialization ---
+        renderMedicineList(); // Initial render for step 1
+        updateNextButtonState();
+        showPage('medicineEntryPage'); // Start on the first page
+
+    </script>
+
+</body>
+</html>
