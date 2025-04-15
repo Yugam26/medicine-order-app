@@ -10,20 +10,30 @@
         /* Apply Inter font globally */
         body {
             font-family: 'Inter', sans-serif;
+            /* Prevent background scrolling when modal/dialog might be open (though not used here) */
+            /* overflow-x: hidden; */
         }
         /* Basic styling for print */
         @media print {
             body {
                 font-family: sans-serif; /* Use a common print font */
+                margin: 0;
+                padding: 0;
+                background: none; /* Remove background for print */
             }
             .no-print {
                 display: none !important; /* Hide elements not needed for print */
             }
+            #appContainer {
+                 box-shadow: none;
+                 border: none;
+                 margin: 0;
+                 padding: 0;
+                 width: 100%;
+                 max-width: none;
+            }
             #finalListPage {
                 display: block !important; /* Ensure final list is visible */
-                box-shadow: none;
-                border: none;
-                margin: 0;
                 padding: 0;
             }
             #medicineEntryPage, #quantityEntryPage, #header, #footer {
@@ -38,15 +48,19 @@
             input[type="text"], input[type="number"] {
                  border: none; /* Remove borders for cleaner print */
                  padding: 2px;
+                 background: none;
             }
              #userNameInputPrint {
                  border-bottom: 1px solid #ccc; /* Add underline for name */
                  font-weight: bold;
                  font-size: 1.2em;
+                 background: none;
              }
-             table { width: 100%; border-collapse: collapse; }
-             th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+             table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+             th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
              th { background-color: #f2f2f2; }
+             /* Ensure text doesn't get cut off in print */
+             td, th { word-wrap: break-word; }
         }
          /* Style for the hidden print header */
         #printHeader {
@@ -58,26 +72,26 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4">
 
-    <div id="appContainer" class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl">
+    <div id="appContainer" class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl mt-4 sm:mt-0">
 
-        <h1 id="header" class="text-2xl font-bold text-center text-blue-600 mb-6">Monthly Medicine Order Helper</h1>
-        <p class="text-center text-sm text-gray-500 mb-4 no-print">Your medicine list is automatically saved in this browser.</p>
+        <h1 id="header" class="text-2xl font-bold text-center text-blue-600 mb-4">Monthly Medicine Order Helper</h1>
+        <p class="text-center text-sm text-gray-500 mb-4 no-print">Your list & name are automatically saved in this browser.</p>
 
         <div id="medicineEntryPage">
             <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 1: Enter Medicine Names</h2>
-            <div class="flex gap-4 mb-4">
+            <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4">
                 <input type="text" id="medicineNameInput" placeholder="Enter medicine name" class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <button onclick="addMedicine()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-150 ease-in-out">Add</button>
+                <button onclick="addMedicine()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto flex-shrink-0">Add</button>
             </div>
             <ul id="medicineList" class="list-disc list-inside mb-6 space-y-2 text-gray-800">
                 </ul>
-            <div class="flex justify-between items-center">
-                 <button onclick="clearAllMedicines()" class="no-print bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" id="clearAllButton">
-                    Clear All
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                 <button onclick="clearAllMedicines()" class="no-print bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto order-2 sm:order-1" id="clearAllButton">
+                    Clear All Medicines
                 </button>
-                 <button id="nextButton" onclick="goToQuantityPage()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
+                 <button id="nextButton" onclick="goToQuantityPage()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto order-1 sm:order-2">
                     Next: Enter Quantities
                 </button>
             </div>
@@ -87,11 +101,11 @@
             <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 2: Enter Quantities</h2>
             <div id="quantityList" class="space-y-4 mb-6">
                 </div>
-            <div class="flex justify-between items-center">
-                 <button onclick="goToMedicinePage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">
-                    &larr; Back
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                 <button onclick="goToMedicinePage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-2 sm:order-1">
+                    &larr; Back to Medicines
                 </button>
-                <button onclick="generateFinalList()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out">
+                <button onclick="generateFinalList()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
                     Generate List
                 </button>
             </div>
@@ -105,7 +119,7 @@
             </div>
 
             <div class="mb-4 no-print">
-                <label for="userNameInput" class="block text-sm font-medium text-gray-700 mb-1">Enter Name for the List:</label>
+                <label for="userNameInput" class="block text-sm font-medium text-gray-700 mb-1">Enter Name for the List (Saved Automatically):</label>
                 <input type="text" id="userNameInput" placeholder="e.g., Family Name or Your Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
 
@@ -116,16 +130,18 @@
 
 
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Medicines & Quantities:</h3>
-            <table class="w-full border-collapse border border-gray-300 mb-6">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Medicine Name</th>
-                        <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Quantity</th>
-                    </tr>
-                </thead>
-                <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-            </table>
+            <div class="overflow-x-auto mb-6">
+                <table class="w-full border-collapse border border-gray-300 min-w-[400px]">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Medicine Name</th>
+                            <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                </table>
+            </div>
 
             <p class="text-sm text-gray-600 mb-4 no-print">
                 Review the list above. You can go back to make changes or print this list.
@@ -134,11 +150,11 @@
                 <strong>To save as PDF:</strong> Click 'Print List' and choose 'Save as PDF' or 'Microsoft Print to PDF' in your browser's print dialog destination/printer options.
             </p>
 
-            <div class="flex justify-between items-center no-print">
-                 <button onclick="goToQuantityPage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out">
-                    &larr; Back
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 no-print">
+                 <button onclick="goToQuantityPage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-2 sm:order-1">
+                    &larr; Back to Quantities
                 </button>
-                <button onclick="printList()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out">
+                <button onclick="printList()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
                     Print List
                 </button>
             </div>
@@ -151,25 +167,24 @@
 
     <script>
         // --- State and Local Storage ---
-        const STORAGE_KEY = 'monthlyMedicineList'; // Key for localStorage
+        const MEDICINE_STORAGE_KEY = 'monthlyMedicineList'; // Key for localStorage (medicines)
+        const USER_NAME_STORAGE_KEY = 'medicineOrderUserName'; // Key for localStorage (user name)
+
         let medicines = []; // Array of objects: { name: 'Medicine A', quantity: '' }
+        let currentUserName = ''; // Variable to hold the user name
 
         // Function to load medicines from localStorage
         function loadMedicinesFromLocalStorage() {
-            const storedMedicines = localStorage.getItem(STORAGE_KEY);
+            const storedMedicines = localStorage.getItem(MEDICINE_STORAGE_KEY);
             if (storedMedicines) {
                 try {
-                    // Parse the stored JSON string back into an array
                     medicines = JSON.parse(storedMedicines);
                 } catch (e) {
                     console.error("Error parsing medicines from localStorage:", e);
-                    // If parsing fails, start with an empty list
                     medicines = [];
-                    // Optionally clear the corrupted data
-                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(MEDICINE_STORAGE_KEY);
                 }
             } else {
-                // If nothing is stored, start with an empty list
                 medicines = [];
             }
         }
@@ -177,12 +192,27 @@
         // Function to save medicines to localStorage
         function saveMedicinesToLocalStorage() {
             try {
-                // Convert the array to a JSON string and save it
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(medicines));
+                localStorage.setItem(MEDICINE_STORAGE_KEY, JSON.stringify(medicines));
             } catch (e) {
                  console.error("Error saving medicines to localStorage:", e);
-                 // Handle potential storage errors (e.g., quota exceeded)
                  alert("Could not save the medicine list. Storage might be full.");
+            }
+        }
+
+         // Function to load user name from localStorage
+        function loadUserNameFromLocalStorage() {
+            const storedUserName = localStorage.getItem(USER_NAME_STORAGE_KEY);
+            currentUserName = storedUserName || ''; // Default to empty string if nothing is stored
+        }
+
+        // Function to save user name to localStorage
+        function saveUserNameToLocalStorage() {
+             try {
+                localStorage.setItem(USER_NAME_STORAGE_KEY, currentUserName);
+            } catch (e) {
+                 console.error("Error saving user name to localStorage:", e);
+                 // Optionally alert the user, but might be too noisy for just the name
+                 // alert("Could not save the user name. Storage might be full.");
             }
         }
 
@@ -207,12 +237,12 @@
         function addMedicine() {
             const name = medicineNameInput.value.trim();
             if (name && !medicines.some(med => med.name.toLowerCase() === name.toLowerCase())) {
-                medicines.push({ name: name, quantity: '' }); // Initialize quantity as empty string
+                medicines.push({ name: name, quantity: '' });
                 saveMedicinesToLocalStorage(); // Save after adding
                 renderMedicineList();
-                medicineNameInput.value = ''; // Clear input
+                medicineNameInput.value = '';
                 medicineNameInput.focus();
-                updateActionButtonsState(); // Update button states
+                updateActionButtonsState();
             } else if (!name) {
                 alert('Please enter a medicine name.');
             } else {
@@ -220,28 +250,27 @@
             }
         }
 
-        // Allow adding medicine by pressing Enter key
         medicineNameInput.addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
-                event.preventDefault(); // Prevent default form submission
+                event.preventDefault();
                 addMedicine();
             }
         });
 
 
         function removeMedicine(index) {
-            medicines.splice(index, 1); // Remove medicine at the given index
+            medicines.splice(index, 1);
             saveMedicinesToLocalStorage(); // Save after removing
             renderMedicineList();
-            updateActionButtonsState(); // Update button states
+            updateActionButtonsState();
         }
 
         function clearAllMedicines() {
-            if (confirm("Are you sure you want to clear the entire medicine list? This cannot be undone.")) {
-                medicines = []; // Clear the array
-                saveMedicinesToLocalStorage(); // Save the empty array (effectively clearing storage)
+            if (medicines.length > 0 && confirm("Are you sure you want to clear the entire medicine list? This cannot be undone.")) {
+                medicines = [];
+                saveMedicinesToLocalStorage(); // Save the empty array
                 renderMedicineList();
-                updateActionButtonsState(); // Update button states
+                updateActionButtonsState();
             }
         }
 
@@ -253,16 +282,17 @@
             } else {
                 medicines.forEach((med, index) => {
                     const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center group';
-                    // Ensure med.name is treated as text, not HTML
+                    li.className = 'flex justify-between items-center group bg-white p-2 rounded'; // Added some padding/bg for clarity
+
                     const nameSpan = document.createElement('span');
-                    nameSpan.className = 'break-all';
-                    nameSpan.textContent = med.name; // Use textContent to prevent XSS
+                    nameSpan.className = 'break-words mr-2'; // Ensure text breaks and has margin
+                    nameSpan.textContent = med.name;
                     li.appendChild(nameSpan);
 
                     const removeButton = document.createElement('button');
                     removeButton.onclick = () => removeMedicine(index);
-                    removeButton.className = 'no-print text-red-500 hover:text-red-700 ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold';
+                    // Make button slightly more visible on mobile hover (though hover isn't primary on touch)
+                    removeButton.className = 'no-print text-red-500 hover:text-red-700 ml-auto pl-2 opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity text-xs font-semibold flex-shrink-0';
                     removeButton.textContent = '[Remove]';
                     li.appendChild(removeButton);
 
@@ -272,7 +302,6 @@
         }
 
         function updateActionButtonsState() {
-            // Enable 'Next' and 'Clear All' buttons only if there's at least one medicine
             const hasMedicines = medicines.length > 0;
             nextButton.disabled = !hasMedicines;
             clearAllButton.disabled = !hasMedicines;
@@ -282,25 +311,27 @@
         // --- Step 2: Quantity Entry ---
 
         function renderQuantityInputs() {
-            quantityList.innerHTML = ''; // Clear current list
+            quantityList.innerHTML = '';
             medicines.forEach((med, index) => {
                 const div = document.createElement('div');
-                div.className = 'flex items-center gap-4';
+                // Responsive label/input layout
+                div.className = 'flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4';
 
                 const label = document.createElement('label');
                 label.htmlFor = `qty_${index}`;
-                label.className = 'w-1/2 text-gray-700 break-words';
-                label.textContent = `${med.name}:`; // Use textContent
+                // Allow label to take necessary width, but constrain on small screens if needed
+                label.className = 'w-full sm:w-1/2 text-gray-700 break-words mb-1 sm:mb-0';
+                label.textContent = `${med.name}:`;
 
                 const input = document.createElement('input');
                 input.type = 'number';
                 input.id = `qty_${index}`;
                 input.min = '0';
-                // Ensure quantity is treated as a string for the input value if empty
                 input.value = med.quantity === '' || med.quantity === null || med.quantity === undefined ? '' : med.quantity;
-                input.oninput = () => updateQuantity(index, input.value); // Pass input value directly
+                input.oninput = () => updateQuantity(index, input.value);
                 input.placeholder = 'Quantity';
-                input.className = 'w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500';
+                // Input takes full width on small, half on larger screens
+                input.className = 'w-full sm:w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500';
 
                 div.appendChild(label);
                 div.appendChild(input);
@@ -309,8 +340,6 @@
         }
 
         function updateQuantity(index, value) {
-            // Update the quantity in the main medicines array
-            // Allow empty string or positive numbers
             medicines[index].quantity = value === '' ? '' : Math.max(0, parseInt(value) || 0);
             saveMedicinesToLocalStorage(); // Save after updating quantity
         }
@@ -319,13 +348,11 @@
         // --- Step 3: Final List ---
 
         function renderFinalList() {
-            finalMedicineTableBody.innerHTML = ''; // Clear previous list
-            const name = userNameInput.value.trim();
-            userNameDisplay.textContent = name ? `Order For: ${name}` : '';
-            // Update the hidden input for print view
-            userNameInputPrint.value = name;
-            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
-
+            finalMedicineTableBody.innerHTML = '';
+            // Set the value of the input field from the loaded/current name
+            userNameInput.value = currentUserName;
+            // Update the display elements
+            updateUserNameDisplay();
 
              if (medicines.length === 0) {
                  finalMedicineTableBody.innerHTML = '<tr><td colspan="2" class="text-center text-gray-500 py-4">No medicines in the list.</td></tr>';
@@ -335,12 +362,11 @@
 
                     const nameTd = document.createElement('td');
                     nameTd.className = 'border border-gray-300 px-4 py-2 break-words';
-                    nameTd.textContent = med.name; // Use textContent
+                    nameTd.textContent = med.name;
                     tr.appendChild(nameTd);
 
                     const qtyTd = document.createElement('td');
                     qtyTd.className = 'border border-gray-300 px-4 py-2';
-                    // Display 'Not specified' if quantity is empty string, null or undefined
                     qtyTd.textContent = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
                     tr.appendChild(qtyTd);
 
@@ -349,13 +375,19 @@
              }
         }
 
-        // Sync user name input between display and print input
-        userNameInput.addEventListener('input', () => {
+        // Function to update name displays and save
+        function updateUserNameDisplay() {
             const name = userNameInput.value.trim();
+            currentUserName = name; // Update the global variable
             userNameDisplay.textContent = name ? `Order For: ${name}` : '';
-            userNameInputPrint.value = name; // Sync to print input
-            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
-        });
+            userNameInputPrint.value = name;
+            userNameInputPrint.classList.toggle('hidden', !name);
+            // Save the name whenever it's updated
+            saveUserNameToLocalStorage();
+        }
+
+        // Sync user name input and save to localStorage
+        userNameInput.addEventListener('input', updateUserNameDisplay);
 
 
         // --- Navigation ---
@@ -366,6 +398,9 @@
             finalListPage.style.display = 'none';
 
             document.getElementById(pageId).style.display = 'block';
+
+             // Scroll to top when changing pages, useful on mobile
+            window.scrollTo(0, 0);
         }
 
         function goToMedicinePage() {
@@ -373,9 +408,8 @@
         }
 
         function goToQuantityPage() {
-            // Ensure quantities are updated before moving
             if (medicines.length > 0) {
-                 renderQuantityInputs(); // Re-render to ensure values are current
+                 renderQuantityInputs();
                  showPage('quantityEntryPage');
             } else {
                 alert("Please add at least one medicine first.");
@@ -383,34 +417,30 @@
         }
 
         function generateFinalList() {
-             // Optional: Check if all quantities are entered
              const allQuantitiesEntered = medicines.every(med => med.quantity !== '');
              if (!allQuantitiesEntered) {
                  if (!confirm("Some quantities are not specified. Do you want to proceed anyway?")) {
-                     return; // Stop if user cancels
+                     return;
                  }
              }
-            renderFinalList();
+            renderFinalList(); // This now also sets the userNameInput value
             showPage('finalListPage');
         }
 
         function printList() {
-             // Update the display name one last time before printing
-            const name = userNameInput.value.trim();
-            userNameDisplay.textContent = name ? `Order For: ${name}` : '';
-            userNameInputPrint.value = name; // Ensure print input is synced
-            userNameInputPrint.classList.toggle('hidden', !name); // Show if name exists
-
-            window.print(); // Trigger browser's print dialog
+            // Ensure display is up-to-date before printing
+            updateUserNameDisplay();
+            window.print();
         }
 
 
         // --- Initialization ---
-        // Load medicines from storage when the script runs
+        // Load both medicines and user name from storage
         loadMedicinesFromLocalStorage();
-        // Initial render for step 1 based on loaded data
+        loadUserNameFromLocalStorage();
+        // Initial render for step 1
         renderMedicineList();
-        // Update button states based on loaded data
+        // Update button states
         updateActionButtonsState();
         // Start on the first page
         showPage('medicineEntryPage');
