@@ -63,6 +63,7 @@
     <div id="appContainer" class="bg-white p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl">
 
         <h1 id="header" class="text-2xl font-bold text-center text-blue-600 mb-6">Monthly Medicine Order Helper</h1>
+        <p class="text-center text-sm text-gray-500 mb-4 no-print">Your medicine list is automatically saved in this browser.</p>
 
         <div id="medicineEntryPage">
             <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 1: Enter Medicine Names</h2>
@@ -72,8 +73,11 @@
             </div>
             <ul id="medicineList" class="list-disc list-inside mb-6 space-y-2 text-gray-800">
                 </ul>
-            <div class="text-center">
-                 <button id="nextButton" onclick="goToQuantityPage()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <div class="flex justify-between items-center">
+                 <button onclick="clearAllMedicines()" class="no-print bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" id="clearAllButton">
+                    Clear All
+                </button>
+                 <button id="nextButton" onclick="goToQuantityPage()" class="no-print bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
                     Next: Enter Quantities
                 </button>
             </div>
@@ -146,8 +150,42 @@
     </div>
 
     <script>
-        // State to hold medicine data
-        let medicines = []; // Array of objects: { name: 'Medicine A', quantity: 0 }
+        // --- State and Local Storage ---
+        const STORAGE_KEY = 'monthlyMedicineList'; // Key for localStorage
+        let medicines = []; // Array of objects: { name: 'Medicine A', quantity: '' }
+
+        // Function to load medicines from localStorage
+        function loadMedicinesFromLocalStorage() {
+            const storedMedicines = localStorage.getItem(STORAGE_KEY);
+            if (storedMedicines) {
+                try {
+                    // Parse the stored JSON string back into an array
+                    medicines = JSON.parse(storedMedicines);
+                } catch (e) {
+                    console.error("Error parsing medicines from localStorage:", e);
+                    // If parsing fails, start with an empty list
+                    medicines = [];
+                    // Optionally clear the corrupted data
+                    localStorage.removeItem(STORAGE_KEY);
+                }
+            } else {
+                // If nothing is stored, start with an empty list
+                medicines = [];
+            }
+        }
+
+        // Function to save medicines to localStorage
+        function saveMedicinesToLocalStorage() {
+            try {
+                // Convert the array to a JSON string and save it
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(medicines));
+            } catch (e) {
+                 console.error("Error saving medicines to localStorage:", e);
+                 // Handle potential storage errors (e.g., quota exceeded)
+                 alert("Could not save the medicine list. Storage might be full.");
+            }
+        }
+
 
         // DOM Elements
         const medicineEntryPage = document.getElementById('medicineEntryPage');
@@ -158,6 +196,7 @@
         const quantityList = document.getElementById('quantityList');
         const finalMedicineTableBody = document.getElementById('finalMedicineTableBody');
         const nextButton = document.getElementById('nextButton');
+        const clearAllButton = document.getElementById('clearAllButton'); // Clear button
         const userNameInput = document.getElementById('userNameInput');
         const userNameDisplay = document.getElementById('userNameDisplay');
         const userNameInputPrint = document.getElementById('userNameInputPrint'); // Input for print view
@@ -169,10 +208,11 @@
             const name = medicineNameInput.value.trim();
             if (name && !medicines.some(med => med.name.toLowerCase() === name.toLowerCase())) {
                 medicines.push({ name: name, quantity: '' }); // Initialize quantity as empty string
+                saveMedicinesToLocalStorage(); // Save after adding
                 renderMedicineList();
                 medicineNameInput.value = ''; // Clear input
                 medicineNameInput.focus();
-                updateNextButtonState();
+                updateActionButtonsState(); // Update button states
             } else if (!name) {
                 alert('Please enter a medicine name.');
             } else {
@@ -191,9 +231,20 @@
 
         function removeMedicine(index) {
             medicines.splice(index, 1); // Remove medicine at the given index
+            saveMedicinesToLocalStorage(); // Save after removing
             renderMedicineList();
-            updateNextButtonState();
+            updateActionButtonsState(); // Update button states
         }
+
+        function clearAllMedicines() {
+            if (confirm("Are you sure you want to clear the entire medicine list? This cannot be undone.")) {
+                medicines = []; // Clear the array
+                saveMedicinesToLocalStorage(); // Save the empty array (effectively clearing storage)
+                renderMedicineList();
+                updateActionButtonsState(); // Update button states
+            }
+        }
+
 
         function renderMedicineList() {
             medicineList.innerHTML = ''; // Clear current list
@@ -203,18 +254,28 @@
                 medicines.forEach((med, index) => {
                     const li = document.createElement('li');
                     li.className = 'flex justify-between items-center group';
-                    li.innerHTML = `
-                        <span class="break-all">${med.name}</span>
-                        <button onclick="removeMedicine(${index})" class="no-print text-red-500 hover:text-red-700 ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold">[Remove]</button>
-                    `;
+                    // Ensure med.name is treated as text, not HTML
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'break-all';
+                    nameSpan.textContent = med.name; // Use textContent to prevent XSS
+                    li.appendChild(nameSpan);
+
+                    const removeButton = document.createElement('button');
+                    removeButton.onclick = () => removeMedicine(index);
+                    removeButton.className = 'no-print text-red-500 hover:text-red-700 ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold';
+                    removeButton.textContent = '[Remove]';
+                    li.appendChild(removeButton);
+
                     medicineList.appendChild(li);
                 });
             }
         }
 
-        function updateNextButtonState() {
-            // Enable the 'Next' button only if there's at least one medicine
-            nextButton.disabled = medicines.length === 0;
+        function updateActionButtonsState() {
+            // Enable 'Next' and 'Clear All' buttons only if there's at least one medicine
+            const hasMedicines = medicines.length > 0;
+            nextButton.disabled = !hasMedicines;
+            clearAllButton.disabled = !hasMedicines;
         }
 
 
@@ -225,26 +286,33 @@
             medicines.forEach((med, index) => {
                 const div = document.createElement('div');
                 div.className = 'flex items-center gap-4';
-                div.innerHTML = `
-                    <label for="qty_${index}" class="w-1/2 text-gray-700 break-words">${med.name}:</label>
-                    <input
-                        type="number"
-                        id="qty_${index}"
-                        min="0"
-                        value="${med.quantity || ''}"
-                        oninput="updateQuantity(${index}, this.value)"
-                        placeholder="Quantity"
-                        class="w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                `;
+
+                const label = document.createElement('label');
+                label.htmlFor = `qty_${index}`;
+                label.className = 'w-1/2 text-gray-700 break-words';
+                label.textContent = `${med.name}:`; // Use textContent
+
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = `qty_${index}`;
+                input.min = '0';
+                // Ensure quantity is treated as a string for the input value if empty
+                input.value = med.quantity === '' || med.quantity === null || med.quantity === undefined ? '' : med.quantity;
+                input.oninput = () => updateQuantity(index, input.value); // Pass input value directly
+                input.placeholder = 'Quantity';
+                input.className = 'w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500';
+
+                div.appendChild(label);
+                div.appendChild(input);
                 quantityList.appendChild(div);
             });
         }
 
         function updateQuantity(index, value) {
             // Update the quantity in the main medicines array
-             // Allow empty string or positive numbers
+            // Allow empty string or positive numbers
             medicines[index].quantity = value === '' ? '' : Math.max(0, parseInt(value) || 0);
+            saveMedicinesToLocalStorage(); // Save after updating quantity
         }
 
 
@@ -264,10 +332,18 @@
              } else {
                  medicines.forEach(med => {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="border border-gray-300 px-4 py-2 break-words">${med.name}</td>
-                        <td class="border border-gray-300 px-4 py-2">${med.quantity === '' ? 'Not specified' : med.quantity}</td>
-                    `;
+
+                    const nameTd = document.createElement('td');
+                    nameTd.className = 'border border-gray-300 px-4 py-2 break-words';
+                    nameTd.textContent = med.name; // Use textContent
+                    tr.appendChild(nameTd);
+
+                    const qtyTd = document.createElement('td');
+                    qtyTd.className = 'border border-gray-300 px-4 py-2';
+                    // Display 'Not specified' if quantity is empty string, null or undefined
+                    qtyTd.textContent = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
+                    tr.appendChild(qtyTd);
+
                     finalMedicineTableBody.appendChild(tr);
                  });
              }
@@ -298,7 +374,6 @@
 
         function goToQuantityPage() {
             // Ensure quantities are updated before moving
-            // (This happens via oninput, but good practice)
             if (medicines.length > 0) {
                  renderQuantityInputs(); // Re-render to ensure values are current
                  showPage('quantityEntryPage');
@@ -331,9 +406,14 @@
 
 
         // --- Initialization ---
-        renderMedicineList(); // Initial render for step 1
-        updateNextButtonState();
-        showPage('medicineEntryPage'); // Start on the first page
+        // Load medicines from storage when the script runs
+        loadMedicinesFromLocalStorage();
+        // Initial render for step 1 based on loaded data
+        renderMedicineList();
+        // Update button states based on loaded data
+        updateActionButtonsState();
+        // Start on the first page
+        showPage('medicineEntryPage');
 
     </script>
 
