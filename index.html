@@ -6,70 +6,40 @@
     <title>Monthly Medicine Order Helper</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
-        /* Apply Inter font globally */
         body {
             font-family: 'Inter', sans-serif;
-            /* Prevent background scrolling when modal/dialog might be open (though not used here) */
-            /* overflow-x: hidden; */
         }
-        /* Basic styling for print */
+        /* Hide edit input by default */
+        .edit-input { display: none; }
+        /* Show edit input when item is in edit mode */
+        .editing .edit-input { display: inline-block; }
+        /* Hide name span when item is in edit mode */
+        .editing .name-span { display: none; }
+        /* Hide edit/remove buttons when item is in edit mode */
+        .editing .edit-button, .editing .remove-button { display: none; }
+        /* Show save/cancel buttons when item is in edit mode */
+        .save-button, .cancel-button { display: none; }
+        .editing .save-button, .editing .cancel-button { display: inline-block; }
+
+        /* Basic styling for print (fallback if PDF fails, though primary is PDF download) */
         @media print {
-            body {
-                font-family: sans-serif; /* Use a common print font */
-                margin: 0;
-                padding: 0;
-                background: none; /* Remove background for print */
-            }
-            .no-print {
-                display: none !important; /* Hide elements not needed for print */
-            }
-            #appContainer {
-                 box-shadow: none;
-                 border: none;
-                 margin: 0;
-                 padding: 0;
-                 width: 100%;
-                 max-width: none;
-            }
-            #finalListPage {
-                display: block !important; /* Ensure final list is visible */
-                padding: 0;
-            }
-            #medicineEntryPage, #quantityEntryPage, #header, #footer {
-                display: none !important; /* Hide other sections */
-            }
-             #printHeader {
-                display: block !important; /* Show print header */
-            }
-            button {
-                display: none !important; /* Hide buttons */
-            }
-            input[type="text"], input[type="number"] {
-                 border: none; /* Remove borders for cleaner print */
-                 padding: 2px;
-                 background: none;
-            }
-             #userNameInputPrint {
-                 border-bottom: 1px solid #ccc; /* Add underline for name */
-                 font-weight: bold;
-                 font-size: 1.2em;
-                 background: none;
-             }
-             table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-             th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-             th { background-color: #f2f2f2; }
-             /* Ensure text doesn't get cut off in print */
-             td, th { word-wrap: break-word; }
+            body { font-family: sans-serif; margin: 0; padding: 0; background: none; }
+            .no-print { display: none !important; }
+            #appContainer { box-shadow: none; border: none; margin: 0; padding: 0; width: 100%; max-width: none; }
+            #finalListPage { display: block !important; padding: 0; }
+            #medicineEntryPage, #quantityEntryPage, #header, #footer { display: none !important; }
+            #printHeader { display: block !important; text-align: center; margin-bottom: 20px; font-size: 1.5em; font-weight: bold; }
+            button { display: none !important; }
+            input[type="text"], input[type="number"] { border: none; padding: 2px; background: none; }
+            #userNameInputPrint { border-bottom: 1px solid #ccc; font-weight: bold; font-size: 1.2em; background: none; display: block !important; } /* Ensure visible for print */
+            table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+            th, td { border: 1px solid #ccc; padding: 6px; text-align: left; word-wrap: break-word; }
+            th { background-color: #f2f2f2; }
         }
-         /* Style for the hidden print header */
-        #printHeader {
-            display: none; /* Hidden by default */
-            text-align: center;
-            margin-bottom: 20px;
-            font-size: 1.5em;
-            font-weight: bold;
-        }
+        #printHeader { display: none; } /* Hidden by default */
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4">
@@ -80,12 +50,12 @@
         <p class="text-center text-sm text-gray-500 mb-4 no-print">Your list & name are automatically saved in this browser.</p>
 
         <div id="medicineEntryPage">
-            <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 1: Enter Medicine Names</h2>
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Step 1: Enter & Edit Medicine Names</h2>
             <div class="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4">
                 <input type="text" id="medicineNameInput" placeholder="Enter medicine name" class="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <button onclick="addMedicine()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 py-2 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto flex-shrink-0">Add</button>
             </div>
-            <ul id="medicineList" class="list-disc list-inside mb-6 space-y-2 text-gray-800">
+            <ul id="medicineList" class="mb-6 space-y-1 text-gray-800">
                 </ul>
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
                  <button onclick="clearAllMedicines()" class="no-print bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto order-2 sm:order-1" id="clearAllButton">
@@ -113,22 +83,15 @@
 
         <div id="finalListPage" style="display: none;">
             <h2 class="text-xl font-semibold mb-4 text-gray-700 no-print">Step 3: Final Medicine List</h2>
-
-             <div id="printHeader">
-                Monthly Medicine Order
-            </div>
-
+            <div id="printHeader">Monthly Medicine Order</div>
             <div class="mb-4 no-print">
                 <label for="userNameInput" class="block text-sm font-medium text-gray-700 mb-1">Enter Name for the List (Saved Automatically):</label>
                 <input type="text" id="userNameInput" placeholder="e.g., Family Name or Your Name" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
             </div>
-
-             <div class="mb-6 text-center">
+            <div class="mb-6 text-center">
                  <span id="userNameDisplay" class="text-lg font-bold"></span>
                  <input type="text" id="userNameInputPrint" class="hidden print:block w-full text-center border-b-2 border-gray-400 focus:outline-none text-xl font-bold mb-4" placeholder="[Enter Name Here]">
-             </div>
-
-
+            </div>
             <h3 class="text-lg font-semibold mb-2 text-gray-800">Medicines & Quantities:</h3>
             <div class="overflow-x-auto mb-6">
                 <table class="w-full border-collapse border border-gray-300 min-w-[400px]">
@@ -138,24 +101,16 @@
                             <th class="border border-gray-300 px-4 py-2 text-left text-sm font-medium text-gray-600 uppercase tracking-wider">Quantity</th>
                         </tr>
                     </thead>
-                    <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200">
-                        </tbody>
+                    <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
-
-            <p class="text-sm text-gray-600 mb-4 no-print">
-                Review the list above. You can go back to make changes or print this list.
-            </p>
-            <p class="text-sm text-red-600 mb-6 no-print">
-                <strong>To save as PDF:</strong> Click 'Print List' and choose 'Save as PDF' or 'Microsoft Print to PDF' in your browser's print dialog destination/printer options.
-            </p>
-
+            <p class="text-sm text-gray-600 mb-4 no-print">Review the list above. You can go back to make changes or download the list as a PDF.</p>
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3 no-print">
                  <button onclick="goToQuantityPage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-2 sm:order-1">
                     &larr; Back to Quantities
                 </button>
-                <button onclick="printList()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
-                    Print List
+                <button onclick="downloadPdf()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
+                    Download PDF
                 </button>
             </div>
         </div>
@@ -167,57 +122,38 @@
 
     <script>
         // --- State and Local Storage ---
-        const MEDICINE_STORAGE_KEY = 'monthlyMedicineList'; // Key for localStorage (medicines)
-        const USER_NAME_STORAGE_KEY = 'medicineOrderUserName'; // Key for localStorage (user name)
+        const MEDICINE_STORAGE_KEY = 'monthlyMedicineList';
+        const USER_NAME_STORAGE_KEY = 'medicineOrderUserName';
+        let medicines = [];
+        let currentUserName = '';
+        // Reference to jsPDF (loaded from CDN)
+        const { jsPDF } = window.jspdf;
 
-        let medicines = []; // Array of objects: { name: 'Medicine A', quantity: '' }
-        let currentUserName = ''; // Variable to hold the user name
+        // --- Utility Functions ---
+        function sanitizeHTML(str) {
+            const temp = document.createElement('div');
+            temp.textContent = str;
+            return temp.innerHTML;
+        }
 
-        // Function to load medicines from localStorage
-        function loadMedicinesFromLocalStorage() {
+        // --- Storage Functions ---
+        function loadMedicinesFromLocalStorage() { /* ... (no changes) ... */
             const storedMedicines = localStorage.getItem(MEDICINE_STORAGE_KEY);
             if (storedMedicines) {
-                try {
-                    medicines = JSON.parse(storedMedicines);
-                } catch (e) {
-                    console.error("Error parsing medicines from localStorage:", e);
-                    medicines = [];
-                    localStorage.removeItem(MEDICINE_STORAGE_KEY);
-                }
-            } else {
-                medicines = [];
-            }
+                try { medicines = JSON.parse(storedMedicines); } catch (e) { console.error("Error parsing medicines:", e); medicines = []; localStorage.removeItem(MEDICINE_STORAGE_KEY); }
+            } else { medicines = []; }
+        }
+        function saveMedicinesToLocalStorage() { /* ... (no changes) ... */
+            try { localStorage.setItem(MEDICINE_STORAGE_KEY, JSON.stringify(medicines)); } catch (e) { console.error("Error saving medicines:", e); alert("Could not save list."); }
+        }
+        function loadUserNameFromLocalStorage() { /* ... (no changes) ... */
+            currentUserName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
+        }
+        function saveUserNameToLocalStorage() { /* ... (no changes) ... */
+            try { localStorage.setItem(USER_NAME_STORAGE_KEY, currentUserName); } catch (e) { console.error("Error saving user name:", e); }
         }
 
-        // Function to save medicines to localStorage
-        function saveMedicinesToLocalStorage() {
-            try {
-                localStorage.setItem(MEDICINE_STORAGE_KEY, JSON.stringify(medicines));
-            } catch (e) {
-                 console.error("Error saving medicines to localStorage:", e);
-                 alert("Could not save the medicine list. Storage might be full.");
-            }
-        }
-
-         // Function to load user name from localStorage
-        function loadUserNameFromLocalStorage() {
-            const storedUserName = localStorage.getItem(USER_NAME_STORAGE_KEY);
-            currentUserName = storedUserName || ''; // Default to empty string if nothing is stored
-        }
-
-        // Function to save user name to localStorage
-        function saveUserNameToLocalStorage() {
-             try {
-                localStorage.setItem(USER_NAME_STORAGE_KEY, currentUserName);
-            } catch (e) {
-                 console.error("Error saving user name to localStorage:", e);
-                 // Optionally alert the user, but might be too noisy for just the name
-                 // alert("Could not save the user name. Storage might be full.");
-            }
-        }
-
-
-        // DOM Elements
+        // DOM Elements (no changes needed)
         const medicineEntryPage = document.getElementById('medicineEntryPage');
         const quantityEntryPage = document.getElementById('quantityEntryPage');
         const finalListPage = document.getElementById('finalListPage');
@@ -226,19 +162,18 @@
         const quantityList = document.getElementById('quantityList');
         const finalMedicineTableBody = document.getElementById('finalMedicineTableBody');
         const nextButton = document.getElementById('nextButton');
-        const clearAllButton = document.getElementById('clearAllButton'); // Clear button
+        const clearAllButton = document.getElementById('clearAllButton');
         const userNameInput = document.getElementById('userNameInput');
         const userNameDisplay = document.getElementById('userNameDisplay');
-        const userNameInputPrint = document.getElementById('userNameInputPrint'); // Input for print view
+        const userNameInputPrint = document.getElementById('userNameInputPrint');
 
-
-        // --- Step 1: Medicine Entry ---
+        // --- Step 1: Medicine Entry & Edit ---
 
         function addMedicine() {
             const name = medicineNameInput.value.trim();
             if (name && !medicines.some(med => med.name.toLowerCase() === name.toLowerCase())) {
                 medicines.push({ name: name, quantity: '' });
-                saveMedicinesToLocalStorage(); // Save after adding
+                saveMedicinesToLocalStorage();
                 renderMedicineList();
                 medicineNameInput.value = '';
                 medicineNameInput.focus();
@@ -251,30 +186,81 @@
         }
 
         medicineNameInput.addEventListener('keypress', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
-                addMedicine();
-            }
+            if (event.key === 'Enter') { event.preventDefault(); addMedicine(); }
         });
-
 
         function removeMedicine(index) {
             medicines.splice(index, 1);
-            saveMedicinesToLocalStorage(); // Save after removing
+            saveMedicinesToLocalStorage();
             renderMedicineList();
             updateActionButtonsState();
         }
 
         function clearAllMedicines() {
-            if (medicines.length > 0 && confirm("Are you sure you want to clear the entire medicine list? This cannot be undone.")) {
+            if (medicines.length > 0 && confirm("Are you sure you want to clear the entire medicine list?")) {
                 medicines = [];
-                saveMedicinesToLocalStorage(); // Save the empty array
+                saveMedicinesToLocalStorage();
                 renderMedicineList();
                 updateActionButtonsState();
             }
         }
 
+        // ** NEW: Function to toggle edit mode for a list item **
+        function toggleEdit(index) {
+            const listItem = document.getElementById(`med-item-${index}`);
+            if (listItem) {
+                listItem.classList.toggle('editing');
+                const inputField = listItem.querySelector('.edit-input');
+                if (listItem.classList.contains('editing')) {
+                    inputField.focus(); // Focus the input when editing starts
+                    inputField.select(); // Select the text
+                }
+            }
+        }
 
+        // ** NEW: Function to save edited medicine name **
+        function saveEdit(index) {
+            const listItem = document.getElementById(`med-item-${index}`);
+            const inputField = listItem.querySelector('.edit-input');
+            const newName = inputField.value.trim();
+            const oldName = medicines[index].name;
+
+            // Basic validation
+            if (!newName) {
+                alert("Medicine name cannot be empty.");
+                inputField.value = oldName; // Reset to old name
+                return;
+            }
+
+            // Check for duplicates (excluding the current item being edited)
+            const isDuplicate = medicines.some((med, i) =>
+                i !== index && med.name.toLowerCase() === newName.toLowerCase()
+            );
+
+            if (isDuplicate) {
+                alert(`'${newName}' is already in the list.`);
+                inputField.value = oldName; // Reset to old name
+                return;
+            }
+
+            // Update the name in the array and save
+            medicines[index].name = newName;
+            saveMedicinesToLocalStorage();
+            renderMedicineList(); // Re-render the whole list to reflect changes and exit edit mode
+        }
+
+        // ** NEW: Function to cancel editing **
+        function cancelEdit(index) {
+             const listItem = document.getElementById(`med-item-${index}`);
+             if (listItem) {
+                 listItem.classList.remove('editing');
+                 // No need to re-render the whole list, just exit edit mode
+                 // Optionally reset input value if needed, but re-render handles this
+                 renderMedicineList(); // Re-render to ensure consistency
+             }
+        }
+
+        // ** UPDATED: Render function to include edit elements **
         function renderMedicineList() {
             medicineList.innerHTML = ''; // Clear current list
             if (medicines.length === 0) {
@@ -282,167 +268,229 @@
             } else {
                 medicines.forEach((med, index) => {
                     const li = document.createElement('li');
-                    li.className = 'flex justify-between items-center group bg-white p-2 rounded'; // Added some padding/bg for clarity
+                    li.id = `med-item-${index}`; // Assign unique ID
+                    // Add padding, background for better visual separation
+                    li.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center group bg-white p-2 rounded shadow-sm border border-gray-200';
 
+                    // Container for name display and edit input
+                    const nameContainer = document.createElement('div');
+                    nameContainer.className = 'flex-grow mb-1 sm:mb-0 mr-2';
+
+                    // Display span (visible by default)
                     const nameSpan = document.createElement('span');
-                    nameSpan.className = 'break-words mr-2'; // Ensure text breaks and has margin
+                    nameSpan.className = 'name-span break-words';
                     nameSpan.textContent = med.name;
-                    li.appendChild(nameSpan);
+                    nameContainer.appendChild(nameSpan);
 
+                    // Edit input (hidden by default)
+                    const editInput = document.createElement('input');
+                    editInput.type = 'text';
+                    editInput.value = med.name;
+                    editInput.className = 'edit-input px-2 py-1 border border-blue-300 rounded w-full sm:w-auto';
+                    editInput.onkeydown = (event) => { // Allow saving with Enter key
+                        if (event.key === 'Enter') {
+                            saveEdit(index);
+                        } else if (event.key === 'Escape') {
+                            cancelEdit(index);
+                        }
+                    };
+                    nameContainer.appendChild(editInput);
+                    li.appendChild(nameContainer);
+
+                    // Container for buttons
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'flex gap-2 flex-shrink-0 mt-1 sm:mt-0'; // Buttons side-by-side
+
+                    // Edit Button (visible by default)
+                    const editButton = document.createElement('button');
+                    editButton.onclick = () => toggleEdit(index);
+                    editButton.className = 'edit-button no-print text-blue-500 hover:text-blue-700 text-xs font-semibold';
+                    editButton.textContent = '[Edit]';
+                    buttonContainer.appendChild(editButton);
+
+                    // Remove Button (visible by default)
                     const removeButton = document.createElement('button');
                     removeButton.onclick = () => removeMedicine(index);
-                    // Make button slightly more visible on mobile hover (though hover isn't primary on touch)
-                    removeButton.className = 'no-print text-red-500 hover:text-red-700 ml-auto pl-2 opacity-50 group-hover:opacity-100 focus:opacity-100 transition-opacity text-xs font-semibold flex-shrink-0';
+                    removeButton.className = 'remove-button no-print text-red-500 hover:text-red-700 text-xs font-semibold';
                     removeButton.textContent = '[Remove]';
-                    li.appendChild(removeButton);
+                    buttonContainer.appendChild(removeButton);
 
+                    // Save Button (hidden by default)
+                    const saveButton = document.createElement('button');
+                    saveButton.onclick = () => saveEdit(index);
+                    saveButton.className = 'save-button no-print text-green-500 hover:text-green-700 text-xs font-semibold';
+                    saveButton.textContent = '[Save]';
+                    buttonContainer.appendChild(saveButton);
+
+                     // Cancel Button (hidden by default)
+                    const cancelButton = document.createElement('button');
+                    cancelButton.onclick = () => cancelEdit(index);
+                    cancelButton.className = 'cancel-button no-print text-gray-500 hover:text-gray-700 text-xs font-semibold';
+                    cancelButton.textContent = '[Cancel]';
+                    buttonContainer.appendChild(cancelButton);
+
+                    li.appendChild(buttonContainer);
                     medicineList.appendChild(li);
                 });
             }
         }
 
-        function updateActionButtonsState() {
+
+        function updateActionButtonsState() { /* ... (no changes) ... */
             const hasMedicines = medicines.length > 0;
             nextButton.disabled = !hasMedicines;
             clearAllButton.disabled = !hasMedicines;
         }
 
-
         // --- Step 2: Quantity Entry ---
 
-        function renderQuantityInputs() {
+        function renderQuantityInputs() { /* ... (no changes) ... */
             quantityList.innerHTML = '';
             medicines.forEach((med, index) => {
                 const div = document.createElement('div');
-                // Responsive label/input layout
                 div.className = 'flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-4';
-
                 const label = document.createElement('label');
                 label.htmlFor = `qty_${index}`;
-                // Allow label to take necessary width, but constrain on small screens if needed
                 label.className = 'w-full sm:w-1/2 text-gray-700 break-words mb-1 sm:mb-0';
                 label.textContent = `${med.name}:`;
-
                 const input = document.createElement('input');
-                input.type = 'number';
-                input.id = `qty_${index}`;
-                input.min = '0';
+                input.type = 'number'; input.id = `qty_${index}`; input.min = '0';
                 input.value = med.quantity === '' || med.quantity === null || med.quantity === undefined ? '' : med.quantity;
                 input.oninput = () => updateQuantity(index, input.value);
                 input.placeholder = 'Quantity';
-                // Input takes full width on small, half on larger screens
                 input.className = 'w-full sm:w-1/2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500';
-
-                div.appendChild(label);
-                div.appendChild(input);
+                div.appendChild(label); div.appendChild(input);
                 quantityList.appendChild(div);
             });
         }
 
-        function updateQuantity(index, value) {
+        function updateQuantity(index, value) { /* ... (no changes) ... */
             medicines[index].quantity = value === '' ? '' : Math.max(0, parseInt(value) || 0);
-            saveMedicinesToLocalStorage(); // Save after updating quantity
+            saveMedicinesToLocalStorage();
         }
 
+        // --- Step 3: Final List & PDF Download ---
 
-        // --- Step 3: Final List ---
-
-        function renderFinalList() {
+        function renderFinalList() { /* ... (no changes) ... */
             finalMedicineTableBody.innerHTML = '';
-            // Set the value of the input field from the loaded/current name
             userNameInput.value = currentUserName;
-            // Update the display elements
             updateUserNameDisplay();
-
              if (medicines.length === 0) {
                  finalMedicineTableBody.innerHTML = '<tr><td colspan="2" class="text-center text-gray-500 py-4">No medicines in the list.</td></tr>';
              } else {
                  medicines.forEach(med => {
                     const tr = document.createElement('tr');
-
                     const nameTd = document.createElement('td');
                     nameTd.className = 'border border-gray-300 px-4 py-2 break-words';
                     nameTd.textContent = med.name;
                     tr.appendChild(nameTd);
-
                     const qtyTd = document.createElement('td');
                     qtyTd.className = 'border border-gray-300 px-4 py-2';
                     qtyTd.textContent = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
                     tr.appendChild(qtyTd);
-
                     finalMedicineTableBody.appendChild(tr);
                  });
              }
         }
 
-        // Function to update name displays and save
-        function updateUserNameDisplay() {
+        function updateUserNameDisplay() { /* ... (no changes) ... */
             const name = userNameInput.value.trim();
-            currentUserName = name; // Update the global variable
+            currentUserName = name;
             userNameDisplay.textContent = name ? `Order For: ${name}` : '';
             userNameInputPrint.value = name;
             userNameInputPrint.classList.toggle('hidden', !name);
-            // Save the name whenever it's updated
             saveUserNameToLocalStorage();
         }
 
-        // Sync user name input and save to localStorage
         userNameInput.addEventListener('input', updateUserNameDisplay);
 
+        // ** NEW: Function to download the list as PDF **
+        function downloadPdf() {
+            if (!medicines || medicines.length === 0) {
+                alert("The medicine list is empty. Cannot generate PDF.");
+                return;
+            }
 
-        // --- Navigation ---
+            try {
+                const doc = new jsPDF();
 
-        function showPage(pageId) {
-            medicineEntryPage.style.display = 'none';
-            quantityEntryPage.style.display = 'none';
-            finalListPage.style.display = 'none';
+                // Get user name (ensure it's updated)
+                const name = userNameInput.value.trim();
+                const title = "Monthly Medicine Order";
+                const fileName = "medicine-order.pdf";
 
-            document.getElementById(pageId).style.display = 'block';
+                // Add Title
+                doc.setFontSize(18);
+                doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
 
-             // Scroll to top when changing pages, useful on mobile
-            window.scrollTo(0, 0);
-        }
+                // Add User Name (if provided)
+                if (name) {
+                    doc.setFontSize(14);
+                    doc.text(`Order For: ${name}`, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+                }
 
-        function goToMedicinePage() {
-            showPage('medicineEntryPage');
-        }
+                // Prepare table data
+                const tableColumn = ["Medicine Name", "Quantity"];
+                const tableRows = [];
 
-        function goToQuantityPage() {
-            if (medicines.length > 0) {
-                 renderQuantityInputs();
-                 showPage('quantityEntryPage');
-            } else {
-                alert("Please add at least one medicine first.");
+                medicines.forEach(med => {
+                    const quantityText = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
+                    const medicineData = [
+                        med.name,
+                        quantityText
+                    ];
+                    tableRows.push(medicineData);
+                });
+
+                // Add table using autoTable plugin
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: name ? 40 : 35, // Adjust startY based on whether name is present
+                    theme: 'grid', // Options: 'striped', 'grid', 'plain'
+                    headStyles: { fillColor: [22, 160, 133] }, // Header color (optional)
+                    margin: { top: 10 }
+                });
+
+                // Add date generated
+                const date = new Date().toLocaleDateString("en-IN"); // Indian date format
+                doc.setFontSize(10);
+                doc.text(`Generated on: ${date}`, 14, doc.internal.pageSize.getHeight() - 10);
+
+                // Trigger download
+                doc.save(fileName);
+
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert("Sorry, there was an error generating the PDF. Please ensure the list is not empty and try again.");
+                // Fallback to print if PDF generation fails? Optional.
+                // window.print();
             }
         }
 
-        function generateFinalList() {
+
+        // --- Navigation ---
+        function showPage(pageId) { /* ... (no changes) ... */
+            medicineEntryPage.style.display = 'none'; quantityEntryPage.style.display = 'none'; finalListPage.style.display = 'none';
+            document.getElementById(pageId).style.display = 'block';
+            window.scrollTo(0, 0);
+        }
+        function goToMedicinePage() { showPage('medicineEntryPage'); }
+        function goToQuantityPage() { /* ... (no changes) ... */
+            if (medicines.length > 0) { renderQuantityInputs(); showPage('quantityEntryPage'); } else { alert("Please add at least one medicine first."); }
+        }
+        function generateFinalList() { /* ... (no changes) ... */
              const allQuantitiesEntered = medicines.every(med => med.quantity !== '');
-             if (!allQuantitiesEntered) {
-                 if (!confirm("Some quantities are not specified. Do you want to proceed anyway?")) {
-                     return;
-                 }
-             }
-            renderFinalList(); // This now also sets the userNameInput value
-            showPage('finalListPage');
+             if (!allQuantitiesEntered) { if (!confirm("Some quantities are not specified. Proceed anyway?")) { return; } }
+            renderFinalList(); showPage('finalListPage');
         }
-
-        function printList() {
-            // Ensure display is up-to-date before printing
-            updateUserNameDisplay();
-            window.print();
-        }
-
+        // Removed printList function as it's replaced by downloadPdf
 
         // --- Initialization ---
-        // Load both medicines and user name from storage
         loadMedicinesFromLocalStorage();
         loadUserNameFromLocalStorage();
-        // Initial render for step 1
         renderMedicineList();
-        // Update button states
         updateActionButtonsState();
-        // Start on the first page
         showPage('medicineEntryPage');
 
     </script>
