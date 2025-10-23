@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- ... existing head content ... -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monthly Medicine Order Helper</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Make sure jsPDF versions are compatible -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
         }
+        /* ... existing styles ... */
         /* Hide edit input by default */
         .edit-input { display: none; }
         /* Show edit input when item is in edit mode */
@@ -24,7 +27,7 @@
         .save-button, .cancel-button { display: none; }
         .editing .save-button, .editing .cancel-button { display: inline-block; }
 
-        /* Basic styling for print (fallback if PDF fails, though primary is PDF download) */
+        /* ... existing @media print styles ... */
         @media print {
             body { font-family: sans-serif; margin: 0; padding: 0; background: none; }
             .no-print { display: none !important; }
@@ -46,6 +49,7 @@
 
     <div id="appContainer" class="bg-white p-4 sm:p-6 md:p-8 rounded-lg shadow-xl w-full max-w-2xl mt-4 sm:mt-0">
 
+        <!-- ... existing HTML ... -->
         <h1 id="header" class="text-2xl font-bold text-center text-blue-600 mb-4">Monthly Medicine Order Helper</h1>
         <p class="text-center text-sm text-gray-500 mb-4 no-print">Your list & name are automatically saved in this browser.</p>
 
@@ -104,13 +108,13 @@
                     <tbody id="finalMedicineTableBody" class="bg-white divide-y divide-gray-200"></tbody>
                 </table>
             </div>
-            <p class="text-sm text-gray-600 mb-4 no-print">Review the list above. You can go back to make changes or download the list as a PDF.</p>
+            <p class="text-sm text-gray-600 mb-4 no-print">Review the list above. You can go back to make changes or share the list as a PDF.</p>
             <div class="flex flex-col sm:flex-row justify-between items-center gap-3 no-print">
                  <button onclick="goToQuantityPage()" class="no-print bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-2 sm:order-1">
                     &larr; Back to Quantities
                 </button>
-                <button onclick="downloadPdf()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
-                    Download PDF
+                <button onclick="generateAndSharePdf()" class="no-print bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-md shadow transition duration-150 ease-in-out w-full sm:w-auto order-1 sm:order-2">
+                    Share PDF
                 </button>
             </div>
         </div>
@@ -122,6 +126,7 @@
 
     <script>
         // --- State and Local Storage ---
+        // ... existing state variables ...
         const MEDICINE_STORAGE_KEY = 'monthlyMedicineList';
         const USER_NAME_STORAGE_KEY = 'medicineOrderUserName';
         let medicines = [];
@@ -129,7 +134,9 @@
         // Reference to jsPDF (loaded from CDN)
         const { jsPDF } = window.jspdf;
 
+
         // --- Utility Functions ---
+        // ... existing utility functions ...
         function sanitizeHTML(str) {
             const temp = document.createElement('div');
             temp.textContent = str;
@@ -137,23 +144,25 @@
         }
 
         // --- Storage Functions ---
-        function loadMedicinesFromLocalStorage() { /* ... (no changes) ... */
+        // ... existing storage functions ...
+        function loadMedicinesFromLocalStorage() {
             const storedMedicines = localStorage.getItem(MEDICINE_STORAGE_KEY);
             if (storedMedicines) {
                 try { medicines = JSON.parse(storedMedicines); } catch (e) { console.error("Error parsing medicines:", e); medicines = []; localStorage.removeItem(MEDICINE_STORAGE_KEY); }
             } else { medicines = []; }
         }
-        function saveMedicinesToLocalStorage() { /* ... (no changes) ... */
+        function saveMedicinesToLocalStorage() {
             try { localStorage.setItem(MEDICINE_STORAGE_KEY, JSON.stringify(medicines)); } catch (e) { console.error("Error saving medicines:", e); alert("Could not save list."); }
         }
-        function loadUserNameFromLocalStorage() { /* ... (no changes) ... */
+        function loadUserNameFromLocalStorage() {
             currentUserName = localStorage.getItem(USER_NAME_STORAGE_KEY) || '';
         }
-        function saveUserNameToLocalStorage() { /* ... (no changes) ... */
+        function saveUserNameToLocalStorage() {
             try { localStorage.setItem(USER_NAME_STORAGE_KEY, currentUserName); } catch (e) { console.error("Error saving user name:", e); }
         }
 
-        // DOM Elements (no changes needed)
+        // --- DOM Elements ---
+        // ... existing DOM element variables ...
         const medicineEntryPage = document.getElementById('medicineEntryPage');
         const quantityEntryPage = document.getElementById('quantityEntryPage');
         const finalListPage = document.getElementById('finalListPage');
@@ -168,7 +177,7 @@
         const userNameInputPrint = document.getElementById('userNameInputPrint');
 
         // --- Step 1: Medicine Entry & Edit ---
-
+        // ... all existing functions for Step 1 (add, remove, clear, edit, save, cancel, render) ...
         function addMedicine() {
             const name = medicineNameInput.value.trim();
             if (name && !medicines.some(med => med.name.toLowerCase() === name.toLowerCase())) {
@@ -205,89 +214,76 @@
             }
         }
 
-        // ** NEW: Function to toggle edit mode for a list item **
         function toggleEdit(index) {
             const listItem = document.getElementById(`med-item-${index}`);
             if (listItem) {
                 listItem.classList.toggle('editing');
                 const inputField = listItem.querySelector('.edit-input');
                 if (listItem.classList.contains('editing')) {
-                    inputField.focus(); // Focus the input when editing starts
-                    inputField.select(); // Select the text
+                    inputField.focus(); 
+                    inputField.select(); 
                 }
             }
         }
 
-        // ** NEW: Function to save edited medicine name **
         function saveEdit(index) {
             const listItem = document.getElementById(`med-item-${index}`);
             const inputField = listItem.querySelector('.edit-input');
             const newName = inputField.value.trim();
             const oldName = medicines[index].name;
 
-            // Basic validation
             if (!newName) {
                 alert("Medicine name cannot be empty.");
-                inputField.value = oldName; // Reset to old name
+                inputField.value = oldName; 
                 return;
             }
 
-            // Check for duplicates (excluding the current item being edited)
             const isDuplicate = medicines.some((med, i) =>
                 i !== index && med.name.toLowerCase() === newName.toLowerCase()
             );
 
             if (isDuplicate) {
                 alert(`'${newName}' is already in the list.`);
-                inputField.value = oldName; // Reset to old name
+                inputField.value = oldName; 
                 return;
             }
 
-            // Update the name in the array and save
             medicines[index].name = newName;
             saveMedicinesToLocalStorage();
-            renderMedicineList(); // Re-render the whole list to reflect changes and exit edit mode
+            renderMedicineList(); 
         }
 
-        // ** NEW: Function to cancel editing **
         function cancelEdit(index) {
              const listItem = document.getElementById(`med-item-${index}`);
              if (listItem) {
                  listItem.classList.remove('editing');
-                 // No need to re-render the whole list, just exit edit mode
-                 // Optionally reset input value if needed, but re-render handles this
-                 renderMedicineList(); // Re-render to ensure consistency
+                 renderMedicineList(); 
              }
         }
 
-        // ** UPDATED: Render function to include edit elements **
         function renderMedicineList() {
-            medicineList.innerHTML = ''; // Clear current list
+            medicineList.innerHTML = ''; 
             if (medicines.length === 0) {
                 medicineList.innerHTML = '<li class="text-gray-500 italic">No medicines added yet.</li>';
             } else {
                 medicines.forEach((med, index) => {
                     const li = document.createElement('li');
-                    li.id = `med-item-${index}`; // Assign unique ID
-                    // Add padding, background for better visual separation
+                    li.id = `med-item-${index}`; 
                     li.className = 'flex flex-col sm:flex-row justify-between items-start sm:items-center group bg-white p-2 rounded shadow-sm border border-gray-200';
 
-                    // Container for name display and edit input
                     const nameContainer = document.createElement('div');
                     nameContainer.className = 'flex-grow mb-1 sm:mb-0 mr-2';
 
-                    // Display span (visible by default)
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'name-span break-words';
                     nameSpan.textContent = med.name;
                     nameContainer.appendChild(nameSpan);
 
-                    // Edit input (hidden by default)
                     const editInput = document.createElement('input');
                     editInput.type = 'text';
                     editInput.value = med.name;
                     editInput.className = 'edit-input px-2 py-1 border border-blue-300 rounded w-full sm:w-auto';
-                    editInput.onkeydown = (event) => { // Allow saving with Enter key
+                    editInput.onkeydown = (event) => { 
                         if (event.key === 'Enter') {
                             saveEdit(index);
                         } else if (event.key === 'Escape') {
@@ -297,32 +293,27 @@
                     nameContainer.appendChild(editInput);
                     li.appendChild(nameContainer);
 
-                    // Container for buttons
                     const buttonContainer = document.createElement('div');
-                    buttonContainer.className = 'flex gap-2 flex-shrink-0 mt-1 sm:mt-0'; // Buttons side-by-side
+                    buttonContainer.className = 'flex gap-2 flex-shrink-0 mt-1 sm:mt-0'; 
 
-                    // Edit Button (visible by default)
                     const editButton = document.createElement('button');
                     editButton.onclick = () => toggleEdit(index);
                     editButton.className = 'edit-button no-print text-blue-500 hover:text-blue-700 text-xs font-semibold';
                     editButton.textContent = '[Edit]';
                     buttonContainer.appendChild(editButton);
 
-                    // Remove Button (visible by default)
                     const removeButton = document.createElement('button');
                     removeButton.onclick = () => removeMedicine(index);
                     removeButton.className = 'remove-button no-print text-red-500 hover:text-red-700 text-xs font-semibold';
                     removeButton.textContent = '[Remove]';
                     buttonContainer.appendChild(removeButton);
 
-                    // Save Button (hidden by default)
                     const saveButton = document.createElement('button');
                     saveButton.onclick = () => saveEdit(index);
                     saveButton.className = 'save-button no-print text-green-500 hover:text-green-700 text-xs font-semibold';
                     saveButton.textContent = '[Save]';
                     buttonContainer.appendChild(saveButton);
 
-                     // Cancel Button (hidden by default)
                     const cancelButton = document.createElement('button');
                     cancelButton.onclick = () => cancelEdit(index);
                     cancelButton.className = 'cancel-button no-print text-gray-500 hover:text-gray-700 text-xs font-semibold';
@@ -336,15 +327,15 @@
         }
 
 
-        function updateActionButtonsState() { /* ... (no changes) ... */
+        function updateActionButtonsState() {
             const hasMedicines = medicines.length > 0;
             nextButton.disabled = !hasMedicines;
             clearAllButton.disabled = !hasMedicines;
         }
 
         // --- Step 2: Quantity Entry ---
-
-        function renderQuantityInputs() { /* ... (no changes) ... */
+        // ... existing functions for Step 2 (renderQuantityInputs, updateQuantity) ...
+        function renderQuantityInputs() {
             quantityList.innerHTML = '';
             medicines.forEach((med, index) => {
                 const div = document.createElement('div');
@@ -364,14 +355,14 @@
             });
         }
 
-        function updateQuantity(index, value) { /* ... (no changes) ... */
+        function updateQuantity(index, value) {
             medicines[index].quantity = value === '' ? '' : Math.max(0, parseInt(value) || 0);
             saveMedicinesToLocalStorage();
         }
 
         // --- Step 3: Final List & PDF Download ---
-
-        function renderFinalList() { /* ... (no changes) ... */
+        // ... existing functions for Step 3 (renderFinalList, updateUserNameDisplay) ...
+        function renderFinalList() {
             finalMedicineTableBody.innerHTML = '';
             userNameInput.value = currentUserName;
             updateUserNameDisplay();
@@ -386,14 +377,19 @@
                     tr.appendChild(nameTd);
                     const qtyTd = document.createElement('td');
                     qtyTd.className = 'border border-gray-300 px-4 py-2';
-                    qtyTd.textContent = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
+                    
+                    // *** CHANGE HERE ***
+                    const qty = med.quantity;
+                    qtyTd.textContent = (qty === 0) ? '0' : (qty === '' || qty === null || qty === undefined ? 'Not specified' : qty);
+                    // *** END CHANGE ***
+
                     tr.appendChild(qtyTd);
                     finalMedicineTableBody.appendChild(tr);
                  });
              }
         }
 
-        function updateUserNameDisplay() { /* ... (no changes) ... */
+        function updateUserNameDisplay() {
             const name = userNameInput.value.trim();
             currentUserName = name;
             userNameDisplay.textContent = name ? `Order For: ${name}` : '';
@@ -404,21 +400,32 @@
 
         userNameInput.addEventListener('input', updateUserNameDisplay);
 
-        // ** NEW: Function to download the list as PDF **
-        function downloadPdf() {
+        async function generateAndSharePdf() {
             if (!medicines || medicines.length === 0) {
                 alert("The medicine list is empty. Cannot generate PDF.");
                 return;
             }
 
+            const doc = new jsPDF();
+            const name = userNameInput.value.trim();
+            const title = "Monthly Medicine Order";
+
+            const date = new Date();
+            const dateString = `${String(date.getDate()).padStart(2, '0')}-${String(date.getMonth() + 1).padStart(2, '0')}-${date.getFullYear()}`; // e.g., 23-10-2025
+            const namePart = name ? `${name.replace(/ /g, '_')}-` : ''; // e.g., Family_Name-
+            const fileName = `${namePart}Medicine_Order-${dateString}.pdf`; // e.g., Family_Name-Medicine_Order-23-10-2025.pdf
+            
+            function downloadFallback() {
+                try {
+                    doc.save(fileName);
+                } catch (e) {
+                    console.error("Fallback download failed:", e);
+                    alert("Sharing is not available, and the fallback download also failed. Please try again.");
+                }
+            }
+
+
             try {
-                const doc = new jsPDF();
-
-                // Get user name (ensure it's updated)
-                const name = userNameInput.value.trim();
-                const title = "Monthly Medicine Order";
-                const fileName = "medicine-order.pdf";
-
                 // Add Title
                 doc.setFontSize(18);
                 doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
@@ -434,7 +441,11 @@
                 const tableRows = [];
 
                 medicines.forEach(med => {
-                    const quantityText = med.quantity === '' || med.quantity === null || med.quantity === undefined ? 'Not specified' : med.quantity;
+                    // *** CHANGE HERE ***
+                    const qty = med.quantity;
+                    const quantityText = (qty === 0) ? '0' : (qty === '' || qty === null || qty === undefined ? 'Not specified' : qty);
+                    // *** END CHANGE ***
+                    
                     const medicineData = [
                         med.name,
                         quantityText
@@ -446,47 +457,83 @@
                 doc.autoTable({
                     head: [tableColumn],
                     body: tableRows,
-                    startY: name ? 40 : 35, // Adjust startY based on whether name is present
-                    theme: 'grid', // Options: 'striped', 'grid', 'plain'
-                    headStyles: { fillColor: [22, 160, 133] }, // Header color (optional)
-                    margin: { top: 10 }
+                    startY: name ? 40 : 35,
+                    theme: 'grid',
+                    headStyles: { fillColor: [22, 160, 133] },
+                    margin: { top: 10 },
+                    tableWidth: 'auto', // Make table only as wide as its content
+                    columnStyles: {
+                        0: { // Medicine Name column
+                            cellWidth: 'auto' // Auto-sizes based on content
+                        }, 
+                        1: { // Quantity column
+                            cellWidth: 35, // Fixed NARROWER width
+                            halign: 'left' // Left-aligned
+                        }
+                    }
                 });
 
                 // Add date generated
-                const date = new Date().toLocaleDateString("en-IN"); // Indian date format
+                const generatedDateString = new Date().toLocaleDateString("en-IN", { day: '2-digit', month: '2-digit', year: 'numeric' });
                 doc.setFontSize(10);
-                doc.text(`Generated on: ${date}`, 14, doc.internal.pageSize.getHeight() - 10);
+                doc.text(`Generated on: ${generatedDateString}`, 14, doc.internal.pageSize.getHeight() - 10);
 
-                // Trigger download
-                doc.save(fileName);
+                // *** WEB SHARE API LOGIC ***
+                const pdfBlob = doc.output('blob');
+                const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+                const shareData = {
+                    files: [pdfFile],
+                    title: `Medicine Order - ${dateString}`,
+                    text: `Here is the medicine order for ${name || 'the month'}.`,
+                };
+
+                if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+                    try {
+                        await navigator.share(shareData);
+                        console.log('PDF shared successfully');
+                    } catch (error) {
+                        console.error('Error sharing PDF:', error);
+                        if (error.name !== 'AbortError') {
+                             alert("Sharing failed. The file will be downloaded instead.");
+                             downloadFallback();
+                        } else {
+                            console.log("Share cancelled by user.");
+                        }
+                    }
+                } else {
+                    console.log("Web Share API (for files) not supported. Falling back to download.");
+                    alert("Your browser's (or this preview environment) doesn't support sharing files directly. The PDF will be downloaded instead.");
+                    downloadFallback();
+                }
 
             } catch (error) {
                 console.error("Error generating PDF:", error);
-                alert("Sorry, there was an error generating the PDF. Please ensure the list is not empty and try again.");
-                // Fallback to print if PDF generation fails? Optional.
-                // window.print();
+                alert("Sorry, there was an error generating the PDF. Please try again.");
+                downloadFallback(); 
             }
         }
 
 
         // --- Navigation ---
-        function showPage(pageId) { /* ... (no changes) ... */
+        // ... existing navigation functions ...
+        function showPage(pageId) {
             medicineEntryPage.style.display = 'none'; quantityEntryPage.style.display = 'none'; finalListPage.style.display = 'none';
             document.getElementById(pageId).style.display = 'block';
             window.scrollTo(0, 0);
         }
         function goToMedicinePage() { showPage('medicineEntryPage'); }
-        function goToQuantityPage() { /* ... (no changes) ... */
+        function goToQuantityPage() {
             if (medicines.length > 0) { renderQuantityInputs(); showPage('quantityEntryPage'); } else { alert("Please add at least one medicine first."); }
         }
-        function generateFinalList() { /* ... (no changes) ... */
+        function generateFinalList() {
              const allQuantitiesEntered = medicines.every(med => med.quantity !== '');
              if (!allQuantitiesEntered) { if (!confirm("Some quantities are not specified. Proceed anyway?")) { return; } }
             renderFinalList(); showPage('finalListPage');
         }
-        // Removed printList function as it's replaced by downloadPdf
 
         // --- Initialization ---
+        // ... existing initialization code ...
         loadMedicinesFromLocalStorage();
         loadUserNameFromLocalStorage();
         renderMedicineList();
@@ -497,3 +544,4 @@
 
 </body>
 </html>
+
